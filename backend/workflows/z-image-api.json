@@ -1,0 +1,139 @@
+{
+  "9": {
+    "inputs": {
+      "filename_prefix": "ComfyUI",
+      "images": [
+        "65",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "保存图像"
+    }
+  },
+  "63": {
+    "inputs": {
+      "vae_name": "ae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "加载VAE"
+    }
+  },
+  "65": {
+    "inputs": {
+      "samples": [
+        "70",
+        0
+      ],
+      "vae": [
+        "63",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE解码"
+    }
+  },
+  "67": {
+    "inputs": {
+      "text": "candid casual photography, a young Chinese woman in her mid-20s sitting by the window reading a book, warm afternoon sunlight streaming in, cozy home atmosphere, soft natural lighting, muted earth tones, beige and warm white color palette, minimalist composition, clean background, breathing room on the left side for text overlay, genuine relaxed moment, peaceful expression, simple white knit sweater, untidy loose hair, film-like texture, slight warm color cast, Fujifilm film simulation, documentary style portrait, everyday life aesthetic, subtle mood, high quality, realistic skin texture, 4k, shot on Fujifilm X-T5, 35mm lens",
+      "clip": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "68": {
+    "inputs": {
+      "width": 800,
+      "height": 800,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "空Latent图像（SD3）"
+    }
+  },
+  "69": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "72",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "采样算法（AuraFlow）"
+    }
+  },
+  "70": {
+    "inputs": {
+      "seed": 42,
+      "steps": 8,
+      "cfg": 1,
+      "sampler_name": "res_multistep",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "69",
+        0
+      ],
+      "positive": [
+        "67",
+        0
+      ],
+      "negative": [
+        "71",
+        0
+      ],
+      "latent_image": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "K采样器"
+    }
+  },
+  "71": {
+    "inputs": {
+      "text": "paintings, sketch, cartoon, anime, 3d render, cgi, illustration, plastic skin, overexposed, harsh lighting, overly sharp, heavy makeup, strong shadows, high contrast, neon colors, busy background, messy composition, cluttered, watermark, text, signature, logo, deformed face, bad anatomy, ugly, low quality, low resolution, worst quality, nsfw",
+      "clip": [
+        "74",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP文本编码"
+    }
+  },
+  "72": {
+    "inputs": {
+      "unet_name": "z-image-turbo-Q4_K_M.gguf"
+    },
+    "class_type": "UnetLoaderGGUF",
+    "_meta": {
+      "title": "Unet Loader (GGUF)"
+    }
+  },
+  "74": {
+    "inputs": {
+      "clip_name": "qwen3-4b-q4_k_m.gguf",
+      "type": "lumina2"
+    },
+    "class_type": "CLIPLoaderGGUF",
+    "_meta": {
+      "title": "CLIPLoader (GGUF)"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "wechat-article-agent-frontend",
+  "version": "0.1.0-demo",
+  "private": true,
+  "scripts": {
+    "dev": "npx http-server . -p 5173 -c-1 --cors"
+  }
+}

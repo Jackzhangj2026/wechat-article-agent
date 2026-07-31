@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>微信公众号文章智能体</title>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus@2.7.0/dist/index.css" />
+  <style>
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f5f7fa; }
+    #app { min-height: 100vh; }
+    .nav-header { background: #07c160; color: white; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-header h1 { margin: 0; font-size: 18px; font-weight: 600; }
+    .nav-header .nav-links { display: flex; gap: 16px; }
+    .nav-header .nav-links a { color: white; text-decoration: none; font-size: 14px; opacity: 0.9; cursor: pointer; }
+    .nav-header .nav-links a:hover, .nav-header .nav-links a.active { opacity: 1; font-weight: 600; }
+    .main-container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .topic-card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+    .topic-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .topic-card.selected { border-color: #07c160; background: #f0faf4; }
+    .topic-card h3 { margin: 0 0 8px; font-size: 16px; color: #1a1a1a; }
+    .topic-card .meta { display: flex; gap: 12px; font-size: 12px; color: #888; margin-bottom: 8px; }
+    .topic-card .desc { font-size: 13px; color: #555; line-height: 1.6; }
+    .topic-card .score { display: inline-block; background: #ff9c00; color: white; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+    .workspace-layout { display: grid; grid-template-columns: 1fr 380px; gap: 20px; min-height: calc(100vh - 100px); }
+    .article-preview { background: white; border-radius: 8px; padding: 30px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow-y: auto; max-height: calc(100vh - 120px); }
+    .article-preview h1 { font-size: 22px; color: #1a1a1a; border-left: 4px solid #07c160; padding-left: 12px; margin: 20px 0 16px; }
+    .article-preview h2 { font-size: 18px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 6px; margin: 24px 0 12px; }
+    .article-preview h3 { font-size: 16px; color: #333; margin: 16px 0 8px; }
+    .article-preview p { font-size: 15px; color: #333; line-height: 1.8; margin: 0 0 14px; }
+    .article-preview strong { color: #07c160; }
+    .article-preview img { max-width: 100%; border-radius: 8px; margin: 12px 0; }
+    .article-preview blockquote { border-left: 3px solid #ddd; background: #f7f7f7; padding: 10px 14px; margin: 12px 0; color: #666; }
+    .right-panel { display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 120px); overflow-y: auto; }
+    .image-card { background: white; border-radius: 8px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .image-card .img-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .image-card .img-header .role-tag { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+    .image-card .role-cover { background: #07c160; color: white; }
+    .image-card .role-inline { background: #e8e8e8; color: #666; }
+    .image-card .prompt-text { font-size: 12px; color: #666; background: #f7f7f7; padding: 6px 8px; border-radius: 4px; margin: 6px 0; word-break: break-all; }
+    .image-card img { width: 100%; border-radius: 6px; margin: 6px 0; }
+    .chat-panel { background: white; border-radius: 8px; padding: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; min-height: 300px; }
+    .chat-messages { flex: 1; overflow-y: auto; margin-bottom: 10px; max-height: 300px; }
+    .chat-msg { margin-bottom: 8px; padding: 8px 10px; border-radius: 6px; font-size: 13px; line-height: 1.5; }
+    .chat-msg.user { background: #07c160; color: white; align-self: flex-end; text-align: right; }
+    .chat-msg.assistant { background: #f0f0f0; color: #333; }
+    .publish-preview { background: white; border-radius: 8px; padding: 40px; max-width: 720px; margin: 0 auto; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+    .loading-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.8); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="nav-header">
+      <h1>📝 微信公众号文章智能体</h1>
+      <div class="nav-links">
+        <a :class="{active: view==='topics'}" @click="goTopics">选题库</a>
+        <a :class="{active: view==='articles'}" @click="goArticles">文章列表</a>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <!-- 选题库视图 -->
+      <div v-if="view==='topics'">
+        <el-row :gutter="20">
+          <el-col :span="6">
+            <el-card>
+              <template #header><strong>📅 选题日期</strong></template>
+              <el-menu :default-active="selectedDate" @select="onSelectDate">
+                <el-menu-item v-for="d in dates" :key="d" :index="d">{{ d }}</el-menu-item>
+              </el-menu>
+            </el-card>
+          </el-col>
+          <el-col :span="18">
+            <div v-if="loading" class="empty-state">加载中...</div>
+            <div v-else-if="topics.length===0" class="empty-state">暂无公众号选题</div>
+            <div v-else>
+              <div v-for="t in topics" :key="t.id" class="topic-card" :class="{selected: selectedTopicId===t.id}" @click="selectedTopicId=t.id">
+                <h3>{{ t.title }}</h3>
+                <div class="meta">
+                  <span class="score">⭐ {{ t.score }}</span>
+                  <span>🎯 {{ t.monetization }}</span>
+                  <span>🔥 {{ t.hotspot_ref }}</span>
+                </div>
+                <div class="desc">{{ t.direction }}</div>
+                <div v-if="selectedTopicId===t.id" style="margin-top:12px;">
+                  <div style="font-size:13px;color:#666;margin-bottom:8px;"><strong>目标受众：</strong>{{ t.audience }}</div>
+                  <div style="font-size:13px;color:#666;margin-bottom:12px;"><strong>大纲：</strong>{{ t.outline.join(' / ') }}</div>
+                  <el-button type="success" size="small" :loading="generating" @click.stop="generateArticle(t.id)">以此选题创作</el-button>
+                </div>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
+
+      <!-- 文章列表视图 -->
+      <div v-if="view==='articles'" style="width:100%;">
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <thead>
+            <tr style="background:#f5f7fa;border-bottom:2px solid #e8e8e8;">
+              <th style="padding:10px 12px;text-align:left;width:60px;">ID</th>
+              <th style="padding:10px 12px;text-align:left;">标题</th>
+              <th style="padding:10px 12px;text-align:left;width:120px;">选题日期</th>
+              <th style="padding:10px 12px;text-align:left;width:100px;">状态</th>
+              <th style="padding:10px 12px;text-align:left;width:80px;">配图</th>
+              <th style="padding:10px 12px;text-align:left;width:180px;">创建时间</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in articleList" :key="row.id" @click="openArticle(row.id)"
+              style="cursor:pointer;border-bottom:1px solid #ebeef5;transition:background 0.2s;"
+              @mouseenter="e => e.currentTarget.style.background='#f5f7fa'"
+              @mouseleave="e => e.currentTarget.style.background=''">
+              <td style="padding:10px 12px;">{{ row.id }}</td>
+              <td style="padding:10px 12px;font-weight:500;">{{ row.title }}</td>
+              <td style="padding:10px 12px;color:#666;">{{ row.topic_date }}</td>
+              <td style="padding:10px 12px;">
+                <span :style="{background: row.status==='ready'?'#e1f3d8':'#f0f0f0',color: row.status==='ready'?'#67c23a':'#999',padding:'2px 8px',borderRadius:'10px',fontSize:'12px',fontWeight:'bold'}">{{ row.status }}</span>
+              </td>
+              <td style="padding:10px 12px;color:#666;">{{ row.image_count }}</td>
+              <td style="padding:10px 12px;color:#999;fontSize:13px;">{{ row.created_at ? row.created_at.replace('T',' ').slice(0,19) : '' }}</td>
+            </tr>
+            <tr v-if="articleList.length === 0">
+              <td colspan="6" style="padding:40px;text-align:center;color:#999;">暂无文章</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 文章工作区 -->
+      <div v-if="view==='workspace' && currentArticle">
+        <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+          <el-button size="small" @click="goArticles">← 返回列表</el-button>
+          <el-button size="small" @click="goTopics">选题库</el-button>
+          <span style="flex:1"></span>
+          <el-button type="success" size="small" :loading="generatingImgs" @click="generateAllImages">🎨 一键生成全部图片</el-button>
+          <el-button type="primary" size="small" @click="goPublish">📋 发布</el-button>
+          <el-button size="small" @click="saveArticle">💾 保存</el-button>
+        </div>
+        <div class="workspace-layout">
+          <!-- 文章编辑/预览区 -->
+          <div class="article-preview">
+            <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+              <el-button size="small" :type="previewMode?'':'success'" @click="previewMode=false">✏️ 编辑</el-button>
+              <el-button size="small" :type="previewMode?'success':''" @click="previewMode=true">👁️ 预览</el-button>
+              <span style="font-size:12px;color:#999;">{{ previewMode ? '预览模式' : '直接编辑 Markdown 内容' }}</span>
+            </div>
+            <textarea v-if="!previewMode" v-model="currentArticle.content_md"
+              style="width:100%;min-height:500px;border:1px solid #ddd;border-radius:6px;padding:16px;font-size:14px;line-height:1.7;font-family:Consolas,Menlo,monospace;resize:vertical;box-sizing:border-box;"
+              placeholder="在此编辑文章 Markdown 内容..."></textarea>
+            <div v-else v-html="renderedContent" style="min-height:500px;"></div>
+          </div>
+          <div class="right-panel">
+            <!-- 图片卡片列表 -->
+            <div v-for="(plan, idx) in currentArticle.image_plan" :key="idx" class="image-card">
+              <div class="img-header">
+                <span :class="['role-tag', plan.role==='cover'?'role-cover':'role-inline']">{{ plan.role==='cover'?'封面':'文中-'+idx }}</span>
+                <el-tag size="small" type="info">{{ plan.size_preset }}</el-tag>
+              </div>
+              <div style="font-size:12px;color:#888;">📌 {{ plan.section }}</div>
+              <div class="prompt-text">📝 {{ plan.description }}</div>
+              <div class="prompt-text">EN: {{ plan.prompt }}</div>
+              <div v-if="getImageByIndex(idx) && getImageByIndex(idx).file_path">
+                <img :src="getImageUrl(idx)" :alt="plan.description" />
+                <div style="font-size:11px;color:#999;">seed: {{ getImageByIndex(idx).seed }} | {{ getImageByIndex(idx).width }}×{{ getImageByIndex(idx).height }}</div>
+              </div>
+              <div v-else style="padding:20px;text-align:center;color:#ccc;font-size:12px;">⏳ 待生成</div>
+              <el-button size="small" type="primary" plain @click="regenerateImage(idx)" :loading="regeneratingIdx===idx">重新生成</el-button>
+            </div>
+
+            <!-- 对话面板 -->
+            <div class="chat-panel">
+              <strong style="margin-bottom:8px;">💬 对话改进</strong>
+              <div class="chat-messages" ref="chatBox">
+                <div v-for="(msg, i) in chatMessages" :key="i" :class="['chat-msg', msg.role]">{{ msg.content.slice(0, 200) }}{{ msg.content.length>200?'...':'' }}</div>
+                <div v-if="chatStreaming" class="chat-msg assistant">{{ chatStreamingText.slice(0,200) }}{{ chatStreamingText.length>200?'...':'' }}</div>
+              </div>
+              <el-input v-model="chatInput" type="textarea" :rows="2" placeholder="如：把标题改得更有吸引力 / 第二段太长了，精简一下 / 封面图换成赛博朋克风" @keydown.enter.exact.prevent="sendChat" />
+              <el-button size="small" type="success" @click="sendChat" :loading="chatLoading" style="margin-top:6px;">发送</el-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 发布视图 -->
+      <div v-if="view==='publish' && currentArticle">
+        <div style="margin-bottom:12px;display:flex;gap:8px;">
+          <el-button size="small" @click="view='workspace'; currentArticle=lastArticle">← 返回编辑</el-button>
+          <span style="flex:1"></span>
+          <el-button type="success" size="small" @click="copyRichText">📋 复制富文本</el-button>
+          <el-button type="primary" size="small" @click="downloadAllImages">⬇️ 下载全部图片</el-button>
+        </div>
+        <div class="publish-preview" v-html="publishHtml"></div>
+        <el-alert v-if="copySuccess" title="已复制！请粘贴到微信公众号后台编辑器（图片需手动上传）" type="success" :closable="false" style="margin-top:16px;" />
+      </div>
+
+      <div v-if="loading" class="loading-mask"><el-icon class="is-loading" :size="40"><Loading /></el-icon><div style="margin-left:12px;">{{ loadingText }}</div></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.4/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/element-plus@2.7.0/dist/index.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@element-plus/icons-vue@2.3/dist/index.iife.min.js"></script>
+  <script src="libs/marked.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
