@@ -1,38 +1,18 @@
 @echo off
 chcp 65001 >nul
-REM WeChat Article Agent - DEMO Launcher (batch version)
-REM Usage: double-click or run start.bat
+REM WeChat Article Agent - 双击静默启动（无 PowerShell 黑窗口）
+cd /d "%~dp0"
 
-setlocal
-set "PROJECT_ROOT=%~dp0"
-set "BACKEND=%PROJECT_ROOT%backend"
-set "FRONTEND=%PROJECT_ROOT%frontend"
+REM 启动后端（隐藏窗口）
+start /min "" powershell -WindowStyle Hidden -NoExit -Command "cd backend; uvicorn main:app --reload --port 8001"
 
-echo ========================================
-echo   WeChat Article Agent - DEMO Launcher
-echo ========================================
+REM 等待 3 秒等后端启动
+timeout /t 3 /nobreak >nul
 
-REM Check DeepSeek API Key
-if "%DEEPSEEK_API_KEY%"=="" (
-    echo [WARN] DEEPSEEK_API_KEY env var not set
-    set /p "APIKEY=Enter DeepSeek API Key (or press Enter to skip): "
-    if not "%APIKEY%"=="" set "DEEPSEEK_API_KEY=%APIKEY%"
-)
+REM 启动前端（隐藏窗口）
+start /min "" powershell -WindowStyle Hidden -NoExit -Command "cd frontend; npx http-server . -p 5173 -c-1 --cors"
 
-REM Start backend
-echo.
-echo [1/2] Starting backend (http://localhost:8000)...
-start "WA-Backend" powershell -NoExit -Command "cd '%BACKEND%'; $env:DEEPSEEK_API_KEY='%DEEPSEEK_API_KEY%'; uvicorn main:app --reload --port 8000"
+REM 打开浏览器
+start http://localhost:5173
 
-REM Start frontend
-echo [2/2] Starting frontend (http://localhost:5173)...
-start "WA-Frontend" powershell -NoExit -Command "cd '%FRONTEND%'; npx http-server . -p 5173 -c-1 --cors"
-
-echo.
-echo ========================================
-echo   Started!
-echo   Frontend: http://localhost:5173
-echo   Backend docs: http://localhost:8000/docs
-echo ========================================
-echo.
-pause
+exit
