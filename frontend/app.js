@@ -47,6 +47,8 @@ const app = createApp({
     const renderedContent = computed(() => {
       if (!currentArticle.value || !currentArticle.value.content_md) return '<div class="empty-state">暂无内容</div>';
       let md = currentArticle.value.content_md;
+      // 去掉开头的 # 标题（标题已在模板中单独显示，避免重复）
+      md = md.replace(/^#\s+.+$/m, '').trim();
       // 替换 ![[xxx.png]] 为图片 URL
       md = md.replace(/!\[\[([^\]]+\.(?:png|jpg|jpeg|gif|webp))\]\]/g, (m, f) => `![${f}](${API_BASE}/assets/${f})`);
       // 替换 {{IMG:xxx}} 占位为提示（不替换为实际图片，右侧面板可查看图片）

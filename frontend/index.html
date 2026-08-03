@@ -148,7 +148,10 @@
             <textarea v-if="!previewMode" v-model="currentArticle.content_md"
               style="width:100%;min-height:500px;border:1px solid #ddd;border-radius:6px;padding:16px;font-size:14px;line-height:1.7;font-family:Consolas,Menlo,monospace;resize:vertical;box-sizing:border-box;"
               placeholder="在此编辑文章 Markdown 内容..."></textarea>
-            <div v-else v-html="renderedContent" style="min-height:500px;"></div>
+            <div v-else>
+              <h1 style="font-size:24px;color:#1a1a1a;border-left:4px solid #07c160;padding-left:14px;margin:0 0 20px;line-height:1.4;">{{ currentArticle.title }}</h1>
+              <div v-html="renderedContent" style="min-height:500px;"></div>
+            </div>
           </div>
           <div class="right-panel">
             <!-- 图片卡片列表 -->
@@ -190,7 +193,10 @@
           <el-button type="success" size="small" @click="copyRichText">📋 复制富文本</el-button>
           <el-button type="primary" size="small" @click="downloadAllImages">⬇️ 下载全部图片</el-button>
         </div>
-        <div class="publish-preview" v-html="publishHtml"></div>
+        <div class="publish-preview">
+          <h1 style="font-size:28px;color:#1a1a1a;text-align:center;margin:0 0 24px;line-height:1.4;font-weight:bold;">{{ currentArticle.title }}</h1>
+          <div v-html="publishHtml"></div>
+        </div>
         <el-alert v-if="copySuccess" title="已复制！请粘贴到微信公众号后台编辑器（图片需手动上传）" type="success" :closable="false" style="margin-top:16px;" />
       </div>
 

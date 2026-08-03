@@ -52,10 +52,14 @@ def generate_richtext(req: PublishRequest, db: Session = Depends(get_db)):
     ).all()
     content_md = _replace_img_placeholders(article.content_md, images)
 
-    # 2. 生成富文本 HTML
+    # 2. 将标题加回 Markdown 内容（确保标题在富文本中显示）
+    if article.title and not content_md.startswith("# "):
+        content_md = f"# {article.title}\n\n{content_md}"
+
+    # 3. 生成富文本 HTML
     html = wechat_formatter.markdown_to_wechat_html(content_md, IMAGE_BASE_URL)
 
-    # 3. 提取所有图片文件名
+    # 4. 提取所有图片文件名
     image_files = wechat_formatter.extract_image_files(content_md)
 
     return {
